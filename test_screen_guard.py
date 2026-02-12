@@ -8,8 +8,8 @@ class ScreenGuardHelpersTests(unittest.TestCase):
         self.assertEqual(normalize_text("  Buy   NOW\n"), "buy now")
 
     def test_total_score(self):
-        result = DetectionResult(ad_score=0.5, adult_score=0.25, ocr_hits=["sale", "buy now"])
-        self.assertAlmostEqual(result.total_score, 1.0)
+        result = DetectionResult(intrusive_ad_score=0.5, adult_score=0.25, ocr_hits=["porn", "casino"])
+        self.assertAlmostEqual(result.total_score, 1.45)
 
     def test_positive_float(self):
         self.assertEqual(positive_float("1.5"), 1.5)

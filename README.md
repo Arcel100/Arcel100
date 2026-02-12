@@ -6,9 +6,9 @@
 
 ## Added project: Screen Guard prototype
 
-I added a Python prototype that monitors the screen, detects likely ad/inappropriate content with AI + OCR signals, and refreshes the page when a threshold is exceeded.
+I added a Python prototype that monitors the screen, detects likely **inappropriate/intrusive** content with AI + OCR signals, and refreshes the page when a threshold is exceeded.
 
-Recent update: it now supports Windows 11 refresh natively (Ctrl+R key events), plus Linux/macOS refresh paths.
+Recent update: tuning now prioritizes inappropriate/intrusive ads and reduces triggers for normal non-intrusive ads.
 
 See [USAGE.md](./USAGE.md) for setup and run instructions.
 

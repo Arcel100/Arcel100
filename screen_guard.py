@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Screen Guard prototype.
 
-Monitors the screen, estimates whether content is ad-like or inappropriate,
+Monitors the screen, estimates whether content is inappropriate/intrusive,
 and refreshes the active browser tab when confidence is high enough.
 
 This tool is heuristic and may produce false positives/negatives.
@@ -18,18 +18,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-AD_KEYWORDS = {
-    "sponsored",
-    "promoted",
-    "buy now",
-    "shop now",
-    "limited offer",
-    "click here",
-    "sale",
-    "discount",
-    "subscribe",
-    "sign up",
-    "install",
+INAPPROPRIATE_KEYWORDS = {
+    "xxx",
+    "porn",
+    "nude",
+    "escort",
+    "adult",
+    "18+",
+    "casino",
+    "bet now",
+    "free spins",
+    "hot singles",
+    "virus detected",
+    "you won",
 }
 
 
@@ -43,14 +44,14 @@ def normalize_text(value: str) -> str:
 
 @dataclass
 class DetectionResult:
-    ad_score: float
+    intrusive_ad_score: float
     adult_score: float
     ocr_hits: list[str]
 
     @property
     def total_score(self) -> float:
-        # Adult detections are weighted more heavily than ad detections.
-        return (self.ad_score * 0.6) + (self.adult_score * 1.2) + (len(self.ocr_hits) * 0.2)
+        # Prioritize inappropriate content and intrusive ad style.
+        return (self.intrusive_ad_score * 0.7) + (self.adult_score * 1.6) + (len(self.ocr_hits) * 0.35)
 
 
 class ScreenGuard:
@@ -79,9 +80,9 @@ class ScreenGuard:
         self.last_refresh_at: float = 0.0
         self.consecutive_hits: int = 0
 
-        self.ad_labels = [
-            "online advertisement banner",
-            "sponsored product image",
+        self.intrusive_ad_labels = [
+            "intrusive popup advertisement",
+            "explicit adult advertisement",
             "normal website content",
         ]
         self.adult_labels = [
@@ -126,15 +127,15 @@ class ScreenGuard:
         if self.classifier is None:
             return 0.0, 0.0
 
-        ad_scores = self.classifier(image, candidate_labels=self.ad_labels)
+        intrusive_ad_scores = self.classifier(image, candidate_labels=self.intrusive_ad_labels)
         adult_scores = self.classifier(image, candidate_labels=self.adult_labels)
 
-        ad_score = 0.0
+        intrusive_ad_score = 0.0
         adult_score = 0.0
 
-        for entry in ad_scores:
-            if entry["label"] == "online advertisement banner":
-                ad_score = float(entry["score"])
+        for entry in intrusive_ad_scores:
+            if entry["label"] == "intrusive popup advertisement":
+                intrusive_ad_score = float(entry["score"])
                 break
 
         for entry in adult_scores:
@@ -142,16 +143,16 @@ class ScreenGuard:
                 adult_score = float(entry["score"])
                 break
 
-        return ad_score, adult_score
+        return intrusive_ad_score, adult_score
 
     def detect_ocr_keywords(self, image) -> list[str]:
         text = normalize_text(self.pytesseract.image_to_string(image))
-        return sorted([kw for kw in AD_KEYWORDS if kw in text])
+        return sorted([kw for kw in INAPPROPRIATE_KEYWORDS if kw in text])
 
     def analyze(self, image) -> DetectionResult:
-        ad_score, adult_score = self.classify_image(image)
+        intrusive_ad_score, adult_score = self.classify_image(image)
         ocr_hits = self.detect_ocr_keywords(image)
-        return DetectionResult(ad_score=ad_score, adult_score=adult_score, ocr_hits=ocr_hits)
+        return DetectionResult(intrusive_ad_score=intrusive_ad_score, adult_score=adult_score, ocr_hits=ocr_hits)
 
     def _can_refresh_now(self) -> bool:
         if self.cooldown_seconds <= 0:
@@ -234,7 +235,7 @@ class ScreenGuard:
             self.consecutive_hits = self.consecutive_hits + 1 if above_threshold else 0
 
             print(
-                f"#{i} ad={result.ad_score:.3f} adult={result.adult_score:.3f} "
+                f"#{i} intrusive_ad={result.intrusive_ad_score:.3f} adult={result.adult_score:.3f} "
                 f"ocr_hits={result.ocr_hits} total={result.total_score:.3f} "
                 f"consecutive_hits={self.consecutive_hits}"
             )
@@ -266,7 +267,12 @@ def positive_int(value: str) -> int:
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="AI screen monitor prototype")
     parser.add_argument("--interval", type=positive_float, default=3.0, help="capture interval in seconds")
-    parser.add_argument("--threshold", type=positive_float, default=1.0, help="refresh threshold")
+    parser.add_argument(
+        "--threshold",
+        type=positive_float,
+        default=1.4,
+        help="refresh threshold (higher = stricter inappropriate detection)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="do not actually send refresh key")
     parser.add_argument(
         "--debug-dir",
@@ -277,19 +283,19 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument(
         "--min-consecutive-hits",
         type=positive_int,
-        default=2,
+        default=3,
         help="number of consecutive detections required before refresh",
     )
     parser.add_argument(
         "--cooldown-seconds",
         type=positive_float,
-        default=10.0,
+        default=20.0,
         help="minimum time between refreshes",
     )
     parser.add_argument(
         "--no-ai",
         action="store_true",
-        help="disable CLIP model scoring and rely only on OCR keyword heuristics",
+        help="disable CLIP model scoring and rely only on inappropriate OCR keywords",
     )
     return parser.parse_args(argv)
 

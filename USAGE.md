@@ -1,6 +1,6 @@
 # Screen Guard (prototype)
 
-`screen_guard.py` monitors your screen and refreshes your browser tab when likely ad/inappropriate content is detected.
+`screen_guard.py` monitors your screen and refreshes your browser tab only when content looks **inappropriate/intrusive**.
 
 ## Windows 11 quick start (recommended)
 
@@ -28,13 +28,13 @@ $env:Path += ";C:\Program Files\Tesseract-OCR"
 ## Run (safe first)
 
 ```powershell
-python screen_guard.py --dry-run --interval 3 --threshold 1.0 --debug-dir .\debug_captures
+python screen_guard.py --dry-run --interval 3 --threshold 1.4 --debug-dir .\debug_captures
 ```
 
 ## Then enable real refresh
 
 ```powershell
-python screen_guard.py --interval 3 --threshold 1.1 --min-consecutive-hits 3 --cooldown-seconds 20
+python screen_guard.py --interval 3 --threshold 1.4 --min-consecutive-hits 3 --cooldown-seconds 20
 ```
 
 On Windows, refresh is sent with native key events (`Ctrl+R`) and does not require `xdotool`.
@@ -45,6 +45,14 @@ On Windows, refresh is sent with native key events (`Ctrl+R`) and does not requi
 # OCR-only fallback (no CLIP model)
 python screen_guard.py --dry-run --no-ai
 ```
+
+## What counts as inappropriate/intrusive
+
+- Adult/explicit visual content.
+- Intrusive popup-style ad visuals.
+- OCR text terms such as `xxx`, `porn`, `casino`, `bet now`, `free spins`, `virus detected`, `you won`.
+
+Normal non-intrusive ads should trigger much less often with these defaults.
 
 ## Notes
 
