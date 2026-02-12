@@ -8,7 +8,7 @@
 
 I added a Python prototype that monitors the screen, detects likely ad/inappropriate content with AI + OCR signals, and refreshes the page when a threshold is exceeded.
 
-Recent update: the prototype now includes safer refresh controls (consecutive hit requirement + cooldown), clearer dependency handling, and an OCR-only fallback mode.
+Recent update: it now supports Windows 11 refresh natively (Ctrl+R key events), plus Linux/macOS refresh paths.
 
 See [USAGE.md](./USAGE.md) for setup and run instructions.
 

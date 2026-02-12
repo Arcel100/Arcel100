@@ -10,6 +10,7 @@ This tool is heuristic and may produce false positives/negatives.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import subprocess
 import sys
 import time
@@ -158,23 +159,55 @@ class ScreenGuard:
         elapsed = time.time() - self.last_refresh_at
         return elapsed >= self.cooldown_seconds
 
+    def _refresh_windows(self) -> None:
+        user32 = ctypes.windll.user32
+        vk_ctrl = 0x11
+        vk_r = 0x52
+        key_up = 0x0002
+
+        user32.keybd_event(vk_ctrl, 0, 0, 0)
+        user32.keybd_event(vk_r, 0, 0, 0)
+        user32.keybd_event(vk_r, 0, key_up, 0)
+        user32.keybd_event(vk_ctrl, 0, key_up, 0)
+
+    def _refresh_linux(self) -> None:
+        cmd = ["xdotool", "key", "ctrl+r"]
+        subprocess.run(cmd, check=True)
+
+    def _refresh_macos(self) -> None:
+        script = 'tell application "System Events" to keystroke "r" using command down'
+        cmd = ["osascript", "-e", script]
+        subprocess.run(cmd, check=True)
+
     def refresh_page(self) -> None:
         if self.dry_run:
-            print("[DRY RUN] Refresh would be triggered (Ctrl+R).")
+            print("[DRY RUN] Refresh would be triggered (Ctrl/Cmd+R).")
             return
 
         if not self._can_refresh_now():
             print("Cooldown active; skipping refresh.")
             return
 
-        # Linux approach using xdotool. Replace for macOS/Windows as needed.
-        cmd = ["xdotool", "key", "ctrl+r"]
         try:
-            subprocess.run(cmd, check=True)
+            if sys.platform.startswith("win"):
+                self._refresh_windows()
+            elif sys.platform == "darwin":
+                self._refresh_macos()
+            elif sys.platform.startswith("linux"):
+                self._refresh_linux()
+            else:
+                print(f"Unsupported platform '{sys.platform}'. Use --dry-run.", file=sys.stderr)
+                return
+
             self.last_refresh_at = time.time()
-            print("Triggered browser refresh (Ctrl+R).")
+            print("Triggered browser refresh.")
         except FileNotFoundError:
-            print("xdotool not found. Install it or use --dry-run.", file=sys.stderr)
+            if sys.platform.startswith("linux"):
+                print("xdotool not found. Install it or use --dry-run.", file=sys.stderr)
+            elif sys.platform == "darwin":
+                print("osascript not found. Use --dry-run.", file=sys.stderr)
+            else:
+                print("Refresh tool not found. Use --dry-run.", file=sys.stderr)
         except subprocess.CalledProcessError as exc:
             print(f"Failed to refresh page: {exc}", file=sys.stderr)
 

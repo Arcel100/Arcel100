@@ -2,41 +2,52 @@
 
 `screen_guard.py` monitors your screen and refreshes your browser tab when likely ad/inappropriate content is detected.
 
-## What was improved
+## Windows 11 quick start (recommended)
 
-- Better dependency errors (clear install message instead of crash on import).
-- Safer refresh behavior:
-  - requires consecutive hits (`--min-consecutive-hits`, default `2`)
-  - enforces cooldown (`--cooldown-seconds`, default `10`)
-- Optional OCR-only mode with `--no-ai`.
+1. Install Python 3.10+.
+2. Open PowerShell in this project folder.
+3. Run:
 
-## Install
-
-```bash
+```powershell
 python -m venv .venv
-source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-# Linux system deps used by OCR + refresh hotkey
-sudo apt-get install -y tesseract-ocr xdotool
+```
+
+4. Install Tesseract OCR for Windows (required by `pytesseract`):
+   - Download installer from: https://github.com/UB-Mannheim/tesseract/wiki
+   - During install, keep default path (usually `C:\Program Files\Tesseract-OCR`).
+
+5. If needed, set PATH in PowerShell for current session:
+
+```powershell
+$env:Path += ";C:\Program Files\Tesseract-OCR"
 ```
 
 ## Run (safe first)
 
-```bash
-python screen_guard.py --dry-run --interval 3 --threshold 1.0 --debug-dir ./debug_captures
+```powershell
+python screen_guard.py --dry-run --interval 3 --threshold 1.0 --debug-dir .\debug_captures
 ```
+
+## Then enable real refresh
+
+```powershell
+python screen_guard.py --interval 3 --threshold 1.1 --min-consecutive-hits 3 --cooldown-seconds 20
+```
+
+On Windows, refresh is sent with native key events (`Ctrl+R`) and does not require `xdotool`.
 
 ## Useful options
 
-```bash
-# Reduce accidental refreshes further
-python screen_guard.py --dry-run --min-consecutive-hits 3 --cooldown-seconds 20
-
+```powershell
 # OCR-only fallback (no CLIP model)
 python screen_guard.py --dry-run --no-ai
 ```
 
 ## Notes
 
-- This is still a heuristic tool, not guaranteed moderation.
-- On macOS/Windows, replace Linux `xdotool` in `refresh_page()`.
+- Keep your browser window focused so refresh is sent to the correct app.
+- This is still heuristic, so false positives/negatives can happen.
+- Linux/macOS are still supported (Linux uses `xdotool`, macOS uses `osascript`).
