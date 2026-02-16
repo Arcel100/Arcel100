@@ -25,7 +25,8 @@ from nudenet import NudeDetector
 from PIL import Image
 from selenium import webdriver
 from selenium.common.exceptions import JavascriptException, WebDriverException
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.common.by import By
 
 
@@ -68,6 +69,12 @@ def parse_args() -> argparse.Namespace:
         description="Watch YouTube and react to explicit/rabbit images based on location."
     )
     parser.add_argument("url", help="YouTube URL to monitor.")
+    parser.add_argument(
+        "--browser",
+        choices=["firefox", "chrome"],
+        default="firefox",
+        help="Browser engine to use (default: firefox).",
+    )
     parser.add_argument(
         "--threshold",
         type=float,
@@ -113,8 +120,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_driver(headless: bool) -> webdriver.Chrome:
-    options = Options()
+def build_driver(browser: str, headless: bool) -> webdriver.Remote:
+    if browser == "firefox":
+        options = FirefoxOptions()
+        if headless:
+            options.add_argument("-headless")
+        return webdriver.Firefox(options=options)
+
+    options = ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
@@ -125,7 +138,7 @@ def build_driver(headless: bool) -> webdriver.Chrome:
 
 
 def _collect_element_screenshots(
-    driver: webdriver.Chrome,
+    driver: webdriver.Remote,
     selectors: list[str],
     location: str,
     limit: int,
@@ -149,7 +162,7 @@ def _collect_element_screenshots(
 
 
 def get_candidate_samples(
-    driver: webdriver.Chrome,
+    driver: webdriver.Remote,
     max_inside_images: int,
     max_outside_images: int,
 ) -> list[Sample]:
@@ -208,7 +221,7 @@ def normalize_rgb(image_bytes: bytes) -> bytes:
         return out.getvalue()
 
 
-def close_current_page(driver: webdriver.Chrome) -> None:
+def close_current_page(driver: webdriver.Remote) -> None:
     logging.warning("Closing page/tab as requested.")
     try:
         if len(driver.window_handles) > 1:
@@ -237,7 +250,7 @@ def main() -> None:
 
     detector = NudeDetector()
     rabbit_detector = load_rabbit_detector(args.rabbit_test_mode)
-    driver = build_driver(args.headless)
+    driver = build_driver(browser=args.browser, headless=args.headless)
     last_refresh = 0.0
 
     try:

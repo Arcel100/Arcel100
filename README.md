@@ -16,11 +16,24 @@ If rabbit is detected anywhere, it closes the page/tab (for testing behavior).
 pip install selenium nudenet pillow transformers torch
 ```
 
-You also need Chrome + ChromeDriver installed and compatible.
+You need a browser driver:
+- **Firefox (default):** Firefox + GeckoDriver
+- **Chrome:** Chrome + ChromeDriver
 
 ## Run
 ```bash
 python youtube_bad_ad_guard.py "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+## Firefox only (your case)
+Just run normally (Firefox is now the default):
+```bash
+python youtube_bad_ad_guard.py "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+If you want to force browser selection explicitly:
+```bash
+python youtube_bad_ad_guard.py "https://www.youtube.com/watch?v=VIDEO_ID" --browser firefox
 ```
 
 ## Rabbit test mode
@@ -36,6 +49,7 @@ python youtube_bad_ad_guard.py "https://www.youtube.com/watch?v=VIDEO_ID" \
   --threshold 0.60 \
   --scan-interval 5 \
   --refresh-cooldown 20 \
+  --browser firefox \
   --max-inside-images 2 \
   --max-outside-images 8
 ```
